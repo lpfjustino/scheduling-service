@@ -1,9 +1,0 @@
-spring:
-  jpa:
-    hibernate:
-      ddl-auto: create
-    database-platform: org.hibernate.dialect.PostgreSQLDialect
-  datasource:
-    url: "jdbc:postgresql://localhost:5432/scheduling"
-    username: ${service.db.username}
-    password: ${service.db.password}
