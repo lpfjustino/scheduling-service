@@ -1,18 +1,17 @@
 package com.jus10.schedule.models;
 
-import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.RequiredArgsConstructor;
 
-import javax.persistence.*;
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
 import java.util.Date;
-import java.util.Set;
 import java.util.UUID;
 
 @Entity
 @Data
-public class Client {
+public class Professional {
     @Id
     @GeneratedValue(strategy=GenerationType.AUTO)
     private UUID id;
@@ -22,8 +21,5 @@ public class Client {
     private String rg;
     private String cpf;
     private Date birthDate;
-
-    @OneToMany(mappedBy = "client")
-    Set<Scheduling> appointments;
 
 }
