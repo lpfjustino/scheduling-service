@@ -8,7 +8,7 @@ import java.util.UUID;
 
 @Entity
 @Data
-@Table(name="scheduling")
+@Table(name="appointments")
 public class Scheduling {
     @Id
     @GeneratedValue(strategy=GenerationType.AUTO)
