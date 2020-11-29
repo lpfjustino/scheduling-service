@@ -1,72 +1,133 @@
 package com.jus10.schedule;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jus10.schedule.dtos.AppointmentCreationDTO;
 import com.jus10.schedule.models.Client;
 import com.jus10.schedule.models.Professional;
-import com.jus10.schedule.models.Scheduling;
 import com.jus10.schedule.models.Service;
-import com.jus10.schedule.repositories.ClientRepository;
-import com.jus10.schedule.repositories.ProfessionalRepository;
-import com.jus10.schedule.repositories.SchedulingRepository;
-import com.jus10.schedule.repositories.ServiceRepository;
-import org.springframework.boot.ApplicationRunner;
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.context.annotation.Bean;
+import com.jus10.schedule.services.AppointmentService;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.web.servlet.MockMvc;
 
+import java.sql.Date;
+import java.time.Instant;
 import java.util.UUID;
 
-@SpringBootApplication
+import static org.hamcrest.CoreMatchers.is;
+import static org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase.Replace.NONE;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+@ActiveProfiles("it")
+@AutoConfigureTestDatabase(replace = NONE)
+@SpringBootTest(classes = ScheduleApplication.class)
+@AutoConfigureMockMvc
+@RunWith(SpringRunner.class)
 public class ScheduleApplicationIT {
 
-	public static void main(String[] args) {
-		SpringApplication.run(ScheduleApplication.class, args);
+	@Autowired
+	private MockMvc mvc;
+
+	@Autowired
+	private AppointmentService appointmentService;
+
+	ObjectMapper mapper = new ObjectMapper();
+
+	@Test
+	public void assert_create_client() throws Exception {
+		createClient(UUID.randomUUID());
+
+		mvc.perform(get("/clients"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("content[0].firstName", is("Luis")));
 	}
 
-	@Bean
-	ApplicationRunner init(ClientRepository clientRepository, ProfessionalRepository professionalRepository,
-						   ServiceRepository serviceRepository, SchedulingRepository schedulingRepository) {
-		return args -> {
-			Client client = createClient(clientRepository);
-			Professional professional = createProfessional(professionalRepository);
-			Service service = createService(serviceRepository);
+	@Test
+	public void assert_create_service() throws Exception {
+		createService(UUID.randomUUID());
 
-			Scheduling scheduling = createScheduling(schedulingRepository, client, service);
-		};
+		mvc.perform(get("/services"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("content[0].name", is("Massagem")));
 	}
 
-	private Scheduling createScheduling(SchedulingRepository schedulingRepository,
-								  Client clientId, Service serviceId) {
-		Scheduling scheduling = new Scheduling();
-		scheduling.setClient(clientId);
-		scheduling.setService(serviceId);
+	@Test
+	public void assert_create_professional() throws Exception {
+		createProfessional();
 
-		return schedulingRepository.save(scheduling);
+		mvc.perform(get("/professionals"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("content[0].firstName", is("Falchi")));
 	}
 
-	private Service createService(ServiceRepository serviceRepository) {
-		UUID id = UUID.randomUUID();
-		Service service = new Service();
-		service.setId( UUID.randomUUID());
-		service.setName("Massagem");
+	@Test
+	public void assert_can_schedule() throws Exception {
+		UUID clientId = UUID.randomUUID();
+		UUID serviceId = UUID.randomUUID();
+		createClient(clientId);
+		createService(serviceId);
 
-		return serviceRepository.save(service);
+		AppointmentCreationDTO appointmentCreationDTO = AppointmentCreationDTO.builder()
+				.clientId(clientId)
+				.serviceId(serviceId)
+				.date(Date.from(Instant.now()))
+				.build();
+
+		mvc.perform(post("/appointment")
+				.content(mapper.writeValueAsString(appointmentCreationDTO))
+				.contentType(MediaType.APPLICATION_JSON))
+					.andExpect(status().isOk());
 	}
 
-	private Client createClient(ClientRepository repository) {
+	private void createClient(UUID id) throws Exception {
+		Client client = makeClient(id);
+		mvc.perform(post("/clients").content(mapper.writeValueAsString(client)));
+	}
+
+	private void createProfessional() throws Exception {
+		Professional professional = makeProfessional();
+		mvc.perform(post("/professionals").content(mapper.writeValueAsString(professional)))
+				.andExpect(status().isCreated());
+	}
+
+	private void createService(UUID id) throws Exception {
+		Service service = makeService(id);
+		mvc.perform(post("/services").content(mapper.writeValueAsString(service)));
+	}
+
+	private Client makeClient(UUID id) {
 		Client client = new Client();
-		client.setId(UUID.randomUUID());
+		client.setId(id);
 		client.setFirstName("Luis");
 		client.setLastName("Paulo");
 
-		return repository.save(client);
+		return client;
 	}
 
-	private Professional createProfessional(ProfessionalRepository repository) {
+	private Professional makeProfessional() {
 		Professional professional = new Professional();
 		professional.setId(UUID.randomUUID());
 		professional.setFirstName("Falchi");
 		professional.setLastName("Justino");
 
-		return repository.save(professional);
+		return professional;
+	}
+
+	private Service makeService(UUID id) {
+		Service service = new Service();
+		service.setId(id);
+		service.setName("Massagem");
+
+		return service;
 	}
 }
