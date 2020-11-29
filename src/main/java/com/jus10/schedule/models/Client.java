@@ -1,11 +1,10 @@
 package com.jus10.schedule.models;
 
-import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.RequiredArgsConstructor;
 
-import javax.persistence.*;
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.OneToMany;
 import java.util.Date;
 import java.util.Set;
 import java.util.UUID;
@@ -14,7 +13,6 @@ import java.util.UUID;
 @Data
 public class Client {
     @Id
-    @GeneratedValue(strategy=GenerationType.AUTO)
     private UUID id;
 
     private String firstName;
